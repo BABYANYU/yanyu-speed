@@ -12,7 +12,7 @@
 
 ## 从这里继续修改
 
-完整步骤见 [部署与开发指南](docs/DEPLOYMENT.md)，当前项目交接见 [继续开发](docs/HANDOFF.md)。
+完整步骤见 [部署与开发指南](documentation/DEPLOYMENT.md)，当前项目交接见 [继续开发](documentation/HANDOFF.md)。
 
 需要 Node.js 22、npm、Python 3。构建字体时需要能访问 Google Fonts。
 
