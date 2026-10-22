@@ -1,0 +1,44 @@
+{
+  "name": "yanyu-speed",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "node --require ./build-compat.cjs node_modules/next/dist/bin/next build --webpack",
+    "package:worker": "python3 package-worker.py",
+    "start": "next start",
+    "lint": "eslint --format=sukka ."
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.9.0",
+    "@stylexjs/stylex": "^0.19.1",
+    "foxact": "^0.3.12",
+    "foxts": "^5.9.1",
+    "lucide-react": "^1.60.0",
+    "minireset.css": "^0.0.7",
+    "modern-screenshot": "^4.7.0",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "server-only": "^0.0.1",
+    "sonner": "^2.0.8",
+    "swr": "^2.5.1",
+    "xbits": "^0.2.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint-sukka/react": "^9.2.0",
+    "@stylexjs/babel-plugin": "^0.19.1",
+    "@types/node": "^20.19.43",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^10.13.0",
+    "eslint-config-sukka": "^9.2.0",
+    "eslint-formatter-sukka": "^9.2.0",
+    "schema-dts": "^2.1.0",
+    "stylex-webpack": "^0.5.0",
+    "typescript": "^6.0.3"
+  },
+  "packageManager": "npm@10.9.1"
+}
