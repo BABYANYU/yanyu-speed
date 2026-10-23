@@ -6,7 +6,7 @@ const home = await request('/');
 assert.equal(home.status, 200);
 const html = await home.text();
 const heading = html.match(/<h1\b[^>]*>(.*?)<\/h1>/s)?.[1].replace(/<[^>]*>/g, '');
-assert.equal(heading, 'Yanyu  ·  Speed');
+assert.equal(heading, 'Yanyu · Speed');
 assert.ok(!html.includes('由烟雨定制与运营'));
 assert.ok(!html.includes('href="/licenses.html"'));
 const singleSwitch = html.match(/<[^>]+aria-label="Use a single connection"[^>]*>/)?.[0];
