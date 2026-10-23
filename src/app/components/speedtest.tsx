@@ -30,16 +30,16 @@ const styles = stylex.create({
   },
   wordmark: {
     fontFamily: fonts.condensed,
-    fontSize: { default: 22, [bp.large]: 28 },
+    fontSize: { default: 28, [bp.mobile]: 24 },
     fontWeight: 500,
     lineHeight: 1,
     // The face's ascent spans the whole em with the descent below it, so the lowercase glyphs
     // sit about 0.15em below the box centre; this lines them up with the header controls.
     transform: 'translateY(-0.13em)',
-    letterSpacing: '-0.01em',
+    letterSpacing: '-0.35px',
     whiteSpace: 'nowrap'
   },
-  wordmarkDomain: { color: colors.inkMuted },
+  wordmarkDot: { color: colors.download },
   menu: {
     display: 'flex',
     alignItems: 'center',
@@ -197,7 +197,7 @@ export function Speedtest({ targets }: SpeedtestProps) {
         <header {...stylex.props(styles.header)}>
           <div>
             <h1 {...stylex.props(styles.wordmark)}>
-              Yanyu<span {...stylex.props(styles.wordmarkDomain)}>.Speed</span>
+              Yanyu<span {...stylex.props(styles.wordmarkDot)}>.</span>Speed
             </h1>
           </div>
           <div data-screenshot="hide" {...stylex.props(styles.menu)}>
