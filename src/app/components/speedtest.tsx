@@ -39,7 +39,7 @@ const styles = stylex.create({
     letterSpacing: '-0.35px',
     whiteSpace: 'nowrap'
   },
-  wordmarkDot: { color: colors.download },
+  wordmarkDot: { color: colors.download, whiteSpace: 'pre' },
   menu: {
     display: 'flex',
     alignItems: 'center',
@@ -197,7 +197,7 @@ export function Speedtest({ targets }: SpeedtestProps) {
         <header {...stylex.props(styles.header)}>
           <div>
             <h1 {...stylex.props(styles.wordmark)}>
-              Yanyu<span {...stylex.props(styles.wordmarkDot)}>.</span>Speed
+              Yanyu<span {...stylex.props(styles.wordmarkDot)}>{'  ·  '}</span>Speed
             </h1>
           </div>
           <div data-screenshot="hide" {...stylex.props(styles.menu)}>
