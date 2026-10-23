@@ -48,6 +48,8 @@ export function useSetColorScheme() {
         } else {
           localStorage.setItem(THEME_STORAGE_KEY, scheme);
         }
+      } catch {
+        // Browsers can deny storage; the selected appearance still applies to this page.
       } finally {
         idleRef.current = null;
       }

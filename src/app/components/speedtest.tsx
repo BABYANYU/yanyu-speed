@@ -197,7 +197,7 @@ export function Speedtest({ targets }: SpeedtestProps) {
         <header {...stylex.props(styles.header)}>
           <div>
             <h1 {...stylex.props(styles.wordmark)}>
-              烟雨<span {...stylex.props(styles.wordmarkDomain)}>测速</span>
+              Yanyu<span {...stylex.props(styles.wordmarkDomain)}>.Speed</span>
             </h1>
           </div>
           <div data-screenshot="hide" {...stylex.props(styles.menu)}>

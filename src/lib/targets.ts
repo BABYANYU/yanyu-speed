@@ -1,9 +1,8 @@
 import 'server-only';
-import { nullthrow } from 'foxts/guard';
 import { isObjectEmpty } from 'foxts/is-object-empty';
 import { z } from 'zod';
 
-const url = z.url();
+const url = z.url({ protocol: /^https?$/ });
 
 const targetSchema = z.object({
   /** ISO 3166-1 alpha-2 codes whose visitors default to this target. */
@@ -32,7 +31,13 @@ export interface Target {
 
 /** Parsed once per build from SPEEDTEST_TARGETS, which never reaches the client bundle. */
 export function loadTargets(): readonly Target[] {
-  const raw = nullthrow(process.env.SPEEDTEST_TARGETS, 'Missing SPEEDTEST_TARGETS');
+  const raw = process.env.SPEEDTEST_TARGETS ?? JSON.stringify({
+    Cloudflare: {
+      ping: 'https://yanyubaby.eu.org/api/ping',
+      download: ['https://yanyubaby.eu.org/api/download'],
+      upload: ['https://yanyubaby.eu.org/api/upload']
+    }
+  });
   const result = targetsSchema.safeParse(JSON.parse(raw));
   if (!result.success) throw new TypeError(`Invalid SPEEDTEST_TARGETS: ${z.prettifyError(result.error)}`);
   return Object.entries(result.data).map(([name, target]) => ({

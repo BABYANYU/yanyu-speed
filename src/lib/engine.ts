@@ -96,7 +96,7 @@ async function discard(body: ReadableStream<Uint8Array> | null) {
 function localTarget(target: string): string {
   const url = new URL(target);
   if (url.hostname === 'yanyubaby.eu.org' && url.pathname.startsWith('/api/')) {
-    return new URL(url.pathname + url.search, globalThis.location.origin).href;
+    return new URL(url.pathname + url.search, location.origin).href;
   }
   return target;
 }
@@ -104,11 +104,13 @@ function localTarget(target: string): string {
 /** Round trip to the ping host: time to the headers of a HEAD request. */
 async function ping(target: string, signal: AbortSignal): Promise<number> {
   // The hosts ignore the query string; it only makes the Resource Timing entry addressable.
-  const url = `${localTarget(target)}?ping=${performance.now().toFixed(3)}`;
+  const url = new URL(localTarget(target));
+  url.searchParams.set('ping', performance.now().toFixed(3));
   const started = performance.now();
-  await fetch(localTarget(url), { ...FETCH_INIT, method: 'HEAD', signal });
+  const response = await fetch(url, { ...FETCH_INIT, method: 'HEAD', signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]) });
+  if (!response.ok) throw new Error(`Ping rejected: ${response.status}`);
   const headersAt = performance.now();
-  const entry = performance.getEntriesByName(url, 'resource').at(-1) as PerformanceResourceTiming | undefined;
+  const entry = performance.getEntriesByName(url.href, 'resource').at(-1) as PerformanceResourceTiming | undefined;
   // Timing-Allow-Origin: * is set, so these are populated cross-origin; the wall clock is the fallback.
   return entry && entry.requestStart > 0 && entry.responseStart > 0
     ? entry.responseStart - entry.requestStart
@@ -125,7 +127,7 @@ function openReader(body: ReadableStream<Uint8Array> | null) {
  * has arrived, so the gap between bodies is hidden. Aborting the signal rejects the in-flight
  * read, which is how the loop exits.
  */
-async function pump(url: string, signal: AbortSignal, meter: Meter) {
+async function pump(url: string, signal: AbortSignal, meter: Meter, prefetch: boolean) {
   const request = () => {
     const started = fetch(localTarget(url), { ...FETCH_INIT, signal });
     // Awaited later; this only keeps an early rejection from surfacing as unhandled.
@@ -136,6 +138,10 @@ async function pump(url: string, signal: AbortSignal, meter: Meter) {
   for (;;) {
     try {
       const response = await (pending ?? request());
+      if (!response.ok) {
+        await discard(response.body);
+        throw new Error(`Download rejected: ${response.status}`);
+      }
       const total = Number(response.headers.get('content-length'));
       let next: Promise<Response> | null = null;
       let received = 0;
@@ -146,7 +152,7 @@ async function pump(url: string, signal: AbortSignal, meter: Meter) {
           if (done) break;
           received += value.byteLength;
           meter.flow(value.byteLength);
-          if (next === null && total > 0 && received >= total * PREFETCH_AT) next = request();
+          if (prefetch && next === null && total > 0 && received >= total * PREFETCH_AT) next = request();
         }
       }
       pending = next;
@@ -199,6 +205,7 @@ type Progress = (reading: Throughput) => void;
 
 /** Runs the pumps until the stability rule fires, sampling throughput and pinging under load. */
 async function measure(pumps: readonly Pump[], pingTarget: string, signal: AbortSignal, onProgress: Progress): Promise<Outcome> {
+  signal.throwIfAborted();
   const phase = new AbortController();
   const stop = () => phase.abort();
   signal.addEventListener('abort', stop, { once: true });
@@ -272,7 +279,7 @@ async function measure(pumps: readonly Pump[], pingTarget: string, signal: Abort
     const rate = sustained(samples);
     marker = marker === 0 ? rate : smooth(marker, rate);
     report(chartLine, marker > 0 ? marker : null, shownLoaded);
-    if (shouldStop(estimates) || now - phaseStarted >= 15_000) break;
+    if (shouldStop(estimates) || now - phaseStarted >= 15000) break;
   }
 
   stop();
@@ -297,7 +304,12 @@ async function measure(pumps: readonly Pump[], pingTarget: string, signal: Abort
     signal.removeEventListener('abort', abortPings);
     report(mbps, mbps, loadedLatency());
   };
-  return { settled: settle() };
+  const settled = settle();
+  if (bytes === 0 && !signal.aborted) {
+    await settled;
+    throw new Error('测速端点未传输有效数据，请检查网络后重试。');
+  }
+  return { settled };
 }
 
 /**
@@ -328,8 +340,8 @@ export async function runSpeedtest(mode: ThreadMode, target: Target, signal: Abo
   const downloadPumps: Pump[] = [];
   const objects = mode === 'multi' ? target.download : target.download.slice(0, 1);
   for (let h = 0, len = objects.length; h < len; h++) {
-    for (let i = 0; i < REQUESTS_PER_HOST; i++) {
-      downloadPumps.push((phaseSignal, meter) => pump(objects[h], phaseSignal, meter));
+    for (let i = 0, count = mode === 'multi' ? REQUESTS_PER_HOST : 1; i < count; i++) {
+      downloadPumps.push((phaseSignal, meter) => pump(objects[h], phaseSignal, meter, mode === 'multi'));
     }
   }
   report.phase('download');

@@ -1,47 +1,15 @@
-# 继续开发交接
+# 继续开发
 
-## 当前状态
+- 项目：BABYANYU/yanyu-speed，Cloudflare Worker yanyu-speed。
+- 正式域名：yanyubaby.eu.org；配置禁用 workers.dev 与预览地址。
+- 左上角和网站元数据使用 Yanyu.Speed；首页无运营页脚。
+- 默认 Single；单线程下载禁用并发和预取，上传为一个请求。
+- Multi 保留三路下载槽位及预取、三路上传。
+- HTTP 错误页不计入下载，延迟请求检查状态且 5 秒超时；无有效数据时提示失败。
+- 地理信息查询 8 秒超时，失败最多重试两次；单目标测速不再被地理查询阻塞。
+- worker.js 提供测速 API，wrangler.jsonc 绑定 out/ 静态资源；禁止直接修改生成产物代替源码。
+- 构建前自动收集依赖许可；原作、字体许可和 THIRD_PARTY_NOTICES 保留。
+- npm test 验证实际请求并发、错误状态、上传上限及流式响应。
+- GitHub Actions 执行构建、部署预检、测试、类型检查、lint 和生产依赖审计，不自动发布。
 
-烟雨测速已经发布到 Cloudflare Worker `yanyu-speed`，绑定 `yanyubaby.eu.org`，备用域为 `yanyu-speed.3878881.workers.dev`。用户批准替换旧根域记录。不在 VPS 部署，未开付费。
-
-使用 SukkaW/speed.skk.moe 原作定制，而不是独立原创整个引擎。原作版权、Apache-2.0、依赖及字体许可都已保留；可选推广已移除。
-
-## 从哪里修改
-
-| 内容 | 文件 |
-| --- | --- |
-| 测速页面与控件 | `src/app/components/speedtest.tsx` |
-| 页脚 | `src/app/page.tsx` |
-| 标题、元数据、字体与图标 | `src/app/layout.tsx` |
-| 网络测速、计时和并发 | `src/lib/engine.ts` |
-| 平滑和稳定性判断 | `src/lib/stability.ts` |
-| 目标配置和校验 | `.env.example`、`src/lib/targets.ts` |
-| IP 信息请求 | `src/hooks/use-geo.ts` |
-| 自有测速后端 | `worker.js` |
-| 静态资源打包进模块 | `package-worker.py` |
-| Worker 发布设置 | `wrangler.jsonc` |
-
-## 改完之后
-
-1. `npm ci`，复制 `.env.example` 为 `.env`。
-2. `npm run build`。
-3. `npm run package:worker`。
-4. 核对许可、页面、延迟/下载/上传接口。
-5. 本人授权后 `npx wrangler deploy`。
-6. 提交源码及新的 `deploy-worker.mjs`，保持生成产物和源码对应。
-
-## 已做的逻辑定制
-
-- `engine.ts` 将本站 `yanyubaby.eu.org/api/` 目标解析到当前 origin，正式域及备用域均可测速。
-- 每个传输阶段增加约 15 秒真实时间上限，避免后台计时节流造成长时间传输；后台依然可能影响测试准确性。
-- `/api/geo` 直接使用 CF 请求元数据，不调用原作未公开接口。
-- 上传数据流式读取后丢弃，不保存。
-
-## 边界
-
-- 当前 GitHub 仓库为私有；未设置 GitHub Actions 自动发布。
-- 文档/打包脚本在上传 GitHub 时整理过，没有因此重新发布线上网站。
-- 不修改生成模块来代替修改源码，否则下次打包会覆盖。
-- 新增依赖需重新收集授权文件；不得丢失 public 中许可文件。
-- 不提交 Cookie、API Token、密钥或 `.env`。
-- 生产依赖审计当时为零报告，不代表未来永久无漏洞；dev 依赖仍需维护。
+修改后运行 README 的全部验证命令。发布使用 npm run deploy，Wrangler 会自动构建。不要恢复 Python 打包、pnpm 锁文件或静态资源内嵌模块；不要提交账号秘密。

@@ -27,9 +27,9 @@ const styles = stylex.create({
 });
 
 // Modified by 烟雨: derivative branding, operator metadata and local icon.
-const SITE_NAME = '烟雨测速';
-const APP_NAME = '烟雨测速';
-const DESCRIPTION = '由烟雨定制与运营的网络测速工具，测量下载、上传速度、延迟与抖动。';
+const SITE_NAME = 'Yanyu.Speed';
+const APP_NAME = 'Yanyu.Speed';
+const DESCRIPTION = '测量当前设备到 Cloudflare 的下载、上传速度、延迟与抖动。';
 
 const jsonLd: WithContext<WebApplication> = {
   '@context': 'https://schema.org',

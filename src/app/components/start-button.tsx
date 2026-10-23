@@ -64,7 +64,7 @@ export function StartButton({ targets, idleSlot, runningSlot, doneSlot }: StartB
   const { start, stop } = useSpeedtestControls(useMode(), useTarget(targets));
   return (
     <Button
-      disabled={locating}
+      disabled={targets.length > 1 && locating}
       onClick={running ? stop : start}
       {...stylex.props(styles.button, running && styles.buttonQuiet)}
     >

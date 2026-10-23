@@ -1,0 +1,29 @@
+烟雨测速 — 上游归属与许可说明
+
+本版本由烟雨定制与运营，基于以下开源项目，不声称拥有上游原作版权：
+
+speed.skk.moe
+Upstream: https://github.com/SukkaW/speed.skk.moe
+Copyright / attribution retained from upstream README:
+**speed.skk.moe** © Sukka, Released under the Apache License 2.0 License.
+Authored and maintained by Sukka with help from contributors.
+Author: https://github.com/SukkaW
+Contributors: https://github.com/SukkaW/speed.skk.moe/graphs/contributors
+License: Apache License, Version 2.0 — see the unmodified LICENSE file.
+
+Modifications by 烟雨:
+- Replaced site branding and operator metadata with 烟雨测速 / 烟雨.
+- Replaced external upstream brand assets with a locally generated SVG icon.
+- Removed optional upstream promotional links and sponsor images.
+- Updated screenshot filenames and added a footer link to /licenses.html.
+- Changed the geo URL to the same-origin /api/geo (API implementation not included).
+- Added this notice and a static license page containing the full upstream license.
+Modified source files carry change notices. Original copyright and license notices are retained.
+
+This is an independent derivative; upstream attribution does not imply endorsement.
+Upstream names are used to identify the source, not as this operator's branding.
+
+Scope: this notice identifies the upstream application. It is not a complete
+inventory of transitive dependencies or bundled fonts. Their original licenses
+and required notices must also be retained when redistributing those materials;
+verify against the actual resolved production build before distribution.

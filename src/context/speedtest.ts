@@ -22,7 +22,7 @@ export function useRunning() {
   return phase !== 'idle' && phase !== 'done';
 }
 
-const [ModeProvider, useMode, useSetMode] = createContextState<ThreadMode>('multi');
+const [ModeProvider, useMode, useSetMode] = createContextState<ThreadMode>('single');
 
 /** Index of a region picked by hand; null follows the geo lookup. */
 const [ChoiceProvider, useChoice, useSetChoice] = createContextState<number | null>(null);

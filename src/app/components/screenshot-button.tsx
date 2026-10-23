@@ -4,6 +4,7 @@ import * as stylex from '@stylexjs/stylex';
 import { flushSync } from 'react-dom';
 import { Button } from '@base-ui/react/button';
 import { noop } from 'foxts/noop';
+import { wait } from 'foxts/wait';
 import { toast } from 'sonner';
 import { menuStyles } from '../../styles/menu.stylex';
 import { useCapturing, usePhase, useRedacted, useRoot, useSetCapturing, useSetRedacted } from '@/context/speedtest';
@@ -20,9 +21,9 @@ function save(image: Promise<Blob>) {
       const link = document.createElement('a');
       link.href = url;
       // Modified by 烟雨: branded screenshot export filename.
-      link.download = `烟雨测速-${new Date().toISOString().slice(0, 19).replaceAll(RE_TIMESTAMP_SEPARATORS, '-')}.png`;
+      link.download = `Yanyu.Speed-${new Date().toISOString().slice(0, 19).replaceAll(RE_TIMESTAMP_SEPARATORS, '-')}.png`;
       link.click();
-      URL.revokeObjectURL(url);
+      void wait(1000).then(() => URL.revokeObjectURL(url));
       toast.success('Screenshot saved');
     })
     .catch(() => toast.error('Screenshot failed'));
@@ -61,10 +62,12 @@ export function ScreenshotButton({ children }: React.PropsWithChildren) {
       setRedacted(wasRedacted);
       setCapturing(false);
     });
-    const copy = typeof ClipboardItem === 'undefined'
+    // eslint-disable-next-line vibe-proof/react-prefer-foxact-use-clipboard -- image clipboard is optional at runtime; foxact only handles text
+    const clipboard = (navigator as { clipboard?: Clipboard }).clipboard;
+    const copy = typeof ClipboardItem === 'undefined' || clipboard === undefined
       ? Promise.reject(new Error('Clipboard images are not supported'))
-      // eslint-disable-next-line vibe-proof/react-prefer-foxact-use-clipboard -- foxact/use-clipboard copies text; this writes an image
-      : navigator.clipboard.write([new ClipboardItem({ 'image/png': image })]);
+
+      : clipboard.write([new ClipboardItem({ 'image/png': image })]);
     copy
       .then(() => toast.success('Screenshot copied to clipboard'))
       .catch(() => save(image));

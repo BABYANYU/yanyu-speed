@@ -1,66 +1,50 @@
-# 部署与开发指南
+# Cloudflare 部署与开发
 
-## 已上线配置
+## 环境
 
-- 正式域名：`yanyubaby.eu.org`
-- 备用域名：`yanyu-speed.3878881.workers.dev`
-- Cloudflare Worker：`yanyu-speed`，production 环境。
-- 用户批准移除旧根域 A=`23.249.19.243`，现由 Worker 自定义域管理 DNS。
-- 未开通付费套餐，未在德国 VPS 部署。
+- Node.js 22，npm 10+；仅使用 package-lock.json 与 npm ci。
+- Next.js 静态导出 + React + StyleX；不需要 Node 服务、VPS、数据库、Python。
+- Worker yanyu-speed；唯一正式域名 yanyubaby.eu.org。
+- worker.js 提供 API；out/ 通过 Cloudflare Static Assets 提供。
+- 构建时需要访问 npm 和 Google Fonts；字体随构建产物部署，浏览器不从 Google Fonts 加载字体。
+- 未使用第三方测速 API；/api/geo 来自 Cloudflare 请求元数据。
 
-## 构建
+## 命令
 
-建议 Node.js 22、npm 10、Python 3，构建时需访问 npm 和 Google Fonts。
-
-```bash
-git clone https://github.com/BABYANYU/yanyu-speed.git
-cd yanyu-speed
+```sh
 npm ci
-cp .env.example .env
-npm run build
-npm run package:worker
-```
-
-- 本版以 `package-lock.json`、`npm ci` 为准；pnpm 文件仅保留上游参考，不混用。
-- `SPEEDTEST_TARGETS` 构建时读取；改端点后必须重新 build。
-- `out/` 为静态网站；`worker.js` 是自有 API；`package-worker.py` 把二者合并为 `deploy-worker.mjs`。
-- 根目录已提交当前线上完整模块，可直接恢复部署；不要仅上传 `worker.js`，那不是完整网站。
-- `artifacts/static.tar.gz` 是当前静态文件快照。
-- `npm run dev` 可本地查看前端，geo 是样例数据，开发服务器本身不提供 Worker 测速 API。
-
-## 发布
-
-```bash
+npm run dev:worker
+npm test
+npm run deploy:check
+npm run typecheck
+npm run lint
+npm audit --omit=dev
 npx wrangler login
-npx wrangler deploy
+npm run deploy
 ```
 
-`wrangler.jsonc` 指向完整模块、服务名与正式自定义域。需在域名所属 Cloudflare 账号授权；首次绑定域名需要相应域名/DNS 权限。不把 Token、Cookie 或本地登录文件提交 GitHub。
+Windows 的 PowerShell 若限制 npm.ps1，可使用 npm.cmd 与 npx.cmd。所有脚本不再依赖 Python。dev:worker 和 deploy 都由 Wrangler 的 build.command 自动构建前端。deploy:check 完成构建和部署包检查，不向线上发布。
 
-也可在 Cloudflare 控制台给同名 Worker 上传完整 `deploy-worker.mjs`。仓库没有自动部署工作流，推送提交不会自动改线上网站。
+## 配置
 
-## 验证
+默认 API 为同源 /api/ping、/api/download、/api/upload 和 /api/geo。目标在构建时配置；修改 SPEEDTEST_TARGETS 后必须重新构建。默认目标已内置，无需创建 .env。
 
-```bash
-curl -I https://yanyubaby.eu.org/
-curl -I https://yanyubaby.eu.org/api/ping
-curl -X POST --data-binary test https://yanyubaby.eu.org/api/upload
-```
+wrangler.jsonc 关闭 workers_dev 和 preview_urls，只保留正式域名。只有 /api/* 优先进入 Worker，其他文件由 Static Assets 处理；不存在的 API 返回 404，不回退首页。_next/static/ 的哈希资源可长期缓存，测速 API 始终 no-store。
 
-预期：首页 200、ping 204、上传返回 `{"received":4}`。网页点击 Start test，完成后显示 Test again。
+旧的静态文件内嵌打包方式已移除，不再使用 deploy-worker.mjs、package-worker.py 或 static.tar.gz。不要只在控制台粘贴 worker.js；它需要 Wrangler 同时上传 out/ 并绑定 ASSETS。
 
-下载接口每个请求 32 MiB；上传单请求上限 32 MiB，流式丢弃。每次完整测试可能产生数百 MiB 或更多流量，免费 Workers 额度不是无限。
+## 上线验收
 
-## 本机特别说明
+- 首页出现 Yanyu.Speed，默认 Single，无运营页脚。
+- /api/ping 的 GET/HEAD 为 204，其他方法为 405。
+- /api/download 为 32 MiB，HEAD 没有响应体；测速数据不压缩、不缓存。
+- POST /api/upload --data-binary test 返回 {"received":4}；超过 32 MiB 返回 413。
+- /api/geo 返回当前请求的 IP、地区、运营商；不缓存个人连接信息。
+- 点击测速，下载、上传、延迟、抖动和截图功能正常。
+- 确认 Cloudflare 域名设置不再启用 workers.dev 或版本预览地址。
 
-Minis/iSH 中安装依赖与构建放在 `/root/`；`/var/minis/` 共享文件系统不支持 npm 符号链接。`build-compat.cjs` 清空本机注入的 Node execArgv，避免 Next 子进程 NODE_OPTIONS 参数报错。
+网站测试针对访问者到 CF 边缘的链路，不是某台服务器的标称带宽。免费计划仍有请求和 CPU 限制；单次完整测速可能使用数百 MiB 或更多流量。
 
-最终浏览器测试已完成：当次出口约下载 485 Mbps、上传 12 Mbps，仅供验收，不代表所有用户速度。测速针对设备到 CF 边缘链路；开代理时包含代理链路，不是德国 VPS 带宽。
+## 账号与回滚
 
-本机正式域曾出现 TLS EOF；公共 DNS 和 CF 证书正常，德国 VPS 正式域首页与 API 均通过。应先区分本地代理、DNS 缓存和线路问题，可用备用域验证。
-
-## 许可与删除
-
-原作 Apache-2.0、原作声明、字体 OFL 和依赖版权文件均须保留。页面仅集中提供许可入口。
-
-如需停止服务，在 Cloudflare 解除本项目自定义域并删除 `yanyu-speed` Worker；不要删除无关子域、邮件记录、其他 Worker。删除线上服务不删除 GitHub 仓库。
+仓库不存储 Cookie、API Token、登录文件或 .env。GitHub 的校验工作流不执行正式发布。首次发布须使用域名所属 Cloudflare 账号授权。可在 Cloudflare Deployments 回滚到上一个版本；不要调整其他 Worker 或无关 DNS。

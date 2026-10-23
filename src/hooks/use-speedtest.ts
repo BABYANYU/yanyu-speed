@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { useSetDownload, useSetJitter, useSetLatency, useSetPhase, useSetUpload } from '@/context/speedtest';
 import { NOT_STARTED, runSpeedtest } from '@/lib/engine';
 import type { Phase, ThreadMode } from '@/lib/engine';
@@ -43,7 +44,11 @@ export function useSpeedtestControls(mode: ThreadMode, target: Target) {
     const report = { phase: setPhase, latency: setLatency, jitter: setJitter, download: setDownload, upload: setUpload };
     runSpeedtest(mode, target, controller.signal, report).catch(() => {
       // Stopped by the user, or the network gave out mid-test: keep whatever was measured.
-      if (!controller.signal.aborted) setPhase('done');
+      if (!controller.signal.aborted) {
+        controller.abort();
+        setPhase('done');
+        toast.error('测速失败，请检查网络后重试。');
+      }
     });
   }, [mode, target, clear, setPhase, setLatency, setJitter, setDownload, setUpload]);
 

@@ -37,11 +37,11 @@ const SAMPLE: Geo = {
 
 async function fetchGeo(url: string): Promise<Geo> {
   if (process.env.NODE_ENV === 'development') return SAMPLE;
-  const response = await fetch(url, { cache: 'no-store' });
+  const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
   if (!response.ok) throw new Error(`Geo lookup failed: ${response.status}`);
   return response.json() as Promise<Geo>;
 }
 
 export function useGeo() {
-  return useSWRImmutable(GEO_URL, fetchGeo);
+  return useSWRImmutable(GEO_URL, fetchGeo, { errorRetryCount: 2 });
 }
