@@ -1,23 +1,28 @@
 # Yanyu.Speed
 
-基于 [SukkaW/speed.skk.moe](https://github.com/SukkaW/speed.skk.moe) 定制的 Cloudflare 测速站。
+## 搭建注意事项
 
-- 网站：<https://yanyubaby.eu.org/>
-- 托管：Cloudflare Workers + Static Assets，仅使用正式域名。
-- 默认 Single：下载和上传各一个请求；Multi 可手动切换。
-- 测量当前设备到 Cloudflare 的下载、上传、延迟与抖动；代理开启时包含代理链路。
-- 截图默认隐藏 IP 和运营商；首页不显示运营页脚。
-
-## 开发和发布
-
-使用 Node.js 22（见 .nvmrc）与 npm 10+。安装、类型检查和构建都支持 Windows；不再依赖 Python。
+- 使用 Node.js 22、npm 10+，通过 `npm ci` 安装依赖。
+- 构建时需能访问 npm 和 Google Fonts；默认测速端点已内置，无需创建 `.env`。
+- 发布前在 `wrangler.jsonc` 配置自己的正式域名，并登录该域名所属的 Cloudflare 账号。
+- 使用 `npm run deploy` 发布，会自动构建并上传 Worker 与静态资源；不要仅在控制台粘贴 `worker.js`。
+- Windows PowerShell 若限制脚本执行，使用 `npm.cmd`、`npx.cmd`。
+- 不要提交 Token、Cookie、`.env` 或登录文件；无需 VPS、数据库或 Python。
 
 ```sh
 npm ci
-npm run dev:worker
+npx wrangler login
+npm run deploy
 ```
 
-该命令构建前端并启动本地 Worker，测速 API 和前端在同一端口。默认目标已内置，不需要 .env；需要自定义目标时可参考 .env.example。本地 Worker 无真实 Cloudflare 连接信息。只改前端时可用 npm run dev，其地理信息为演示数据，测速 API 不可用。
+## 后期修改注意事项
+
+- 修改 `src/`、`worker.js` 和配置源码，不直接修改生成的 `out/`。
+- 标识与页面控件位于 `src/app/components/speedtest.tsx`；默认单线程位于 `src/context/speedtest.ts`；测速逻辑位于 `src/lib/engine.ts`。
+- 本地完整联调使用 `npm run dev:worker`；`npm run dev` 仅预览前端，地理信息是演示数据，测速 API 不可用。
+- 修改 `SPEEDTEST_TARGETS` 后需重新构建发布。保持单线程禁用并发和预取，测速 API 禁止缓存。
+- 发布前完成以下检查；发布后确认首页、默认 Single 和测速功能正常。
+- GitHub 推送只触发检查，不自动发布网站；正式更新仍需运行 `npm run deploy`。额外域名与预览地址保持关闭。
 
 ```sh
 npm test
@@ -25,22 +30,6 @@ npm run deploy:check
 npm run typecheck
 npm run lint
 npm audit --omit=dev
-```
-
-正式发布（在拥有域名的 Cloudflare 账号登录）：
-
-```sh
-npx wrangler login
 npm run deploy
+node scripts/verify-live.mjs
 ```
-
-Wrangler 会自动构建；静态资源来自 out/，API 来自 worker.js。workers.dev 与预览地址在配置中均关闭。GitHub Actions 只验证，不自动部署，也不需要 Cloudflare Token。
-
-详见 [部署指南](documentation/DEPLOYMENT.md)、[交接说明](documentation/HANDOFF.md)、[审查记录](documentation/REVIEW.md)。
-
-## 许可
-
-首页的许可链接已移除，原作、依赖及字体许可文件仍保留，并可直接访问 /licenses.html。构建会收集当前安装的生产依赖许可。
-
-**speed.skk.moe** © [Sukka](https://github.com/SukkaW), Released under the [Apache License 2.0](LICENSE) License.
-Authored and maintained by Sukka with help from contributors ([list](https://github.com/SukkaW/speed.skk.moe/graphs/contributors)).
