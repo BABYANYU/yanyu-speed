@@ -33,9 +33,9 @@ export interface Target {
 export function loadTargets(): readonly Target[] {
   const raw = process.env.SPEEDTEST_TARGETS ?? JSON.stringify({
     Cloudflare: {
-      ping: 'https://yanyubaby.eu.org/api/ping',
-      download: ['https://yanyubaby.eu.org/api/download'],
-      upload: ['https://yanyubaby.eu.org/api/upload']
+      ping: 'https://speed.fakeyou.eu.org/api/ping',
+      download: ['https://speed.fakeyou.eu.org/api/download'],
+      upload: ['https://speed.fakeyou.eu.org/api/upload']
     }
   });
   const result = targetsSchema.safeParse(JSON.parse(raw));

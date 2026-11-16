@@ -103,7 +103,7 @@ async function discard(body: ReadableStream<Uint8Array> | null) {
 // Modified by 烟雨: resolve this deployment's API endpoints against the active hostname.
 function localTarget(target: string): string {
   const url = new URL(target);
-  if (url.hostname === 'yanyubaby.eu.org' && url.pathname.startsWith('/api/')) {
+  if (url.hostname === 'speed.fakeyou.eu.org' && url.pathname.startsWith('/api/')) {
     return new URL(url.pathname + url.search, location.origin).href;
   }
   return target;

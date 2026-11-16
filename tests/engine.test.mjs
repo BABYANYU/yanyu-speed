@@ -24,13 +24,13 @@ engine = engine.replace("from './stability'", "from './stability.mjs'")
   .replace('UPLOAD_MAX_BYTES = 32 * 1024 * 1024', 'UPLOAD_MAX_BYTES = 256 * 1024');
 await writeFile(new URL('engine.mjs', directory), compile(engine + '\nexport { pump, push, measure };'));
 const { runSpeedtest, pump, push, measure } = await import(new URL('engine.mjs', directory));
-const target = { name: 'Cloudflare', countries: [], ping: 'https://yanyubaby.eu.org/api/ping', download: ['https://yanyubaby.eu.org/api/download'], upload: ['https://yanyubaby.eu.org/api/upload'] };
+const target = { name: 'Cloudflare', countries: [], ping: 'https://speed.fakeyou.eu.org/api/ping', download: ['https://speed.fakeyou.eu.org/api/download'], upload: ['https://speed.fakeyou.eu.org/api/upload'] };
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function run(mode, downloadStatus = 200, pingStatus = 204) {
   const originalFetch = globalThis.fetch;
   const originalLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
-  Object.defineProperty(globalThis, 'location', { value: { origin: 'https://yanyubaby.eu.org' }, configurable: true });
+  Object.defineProperty(globalThis, 'location', { value: { origin: 'https://speed.fakeyou.eu.org' }, configurable: true });
   let activeDownloads = 0, peakDownloads = 0, activeUploads = 0, peakUploads = 0;
   const phases = [];
   globalThis.fetch = async (url, init) => {

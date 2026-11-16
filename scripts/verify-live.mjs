@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-const base = new URL(process.argv[2] ?? 'https://yanyubaby.eu.org/');
+const base = new URL(process.argv[2] ?? 'https://speed.fakeyou.eu.org/');
 const request = (path, options = {}) => fetch(new URL(path, base), { cache: 'no-store', signal: AbortSignal.timeout(15000), ...options });
 const home = await request('/');
 assert.equal(home.status, 200);

@@ -4,7 +4,7 @@
 
 - Node.js 22，npm 10+；仅使用 package-lock.json 与 npm ci。
 - Next.js 静态导出 + React + StyleX；不需要 Node 服务、VPS、数据库、Python。
-- Worker yanyu-speed；唯一正式域名 yanyubaby.eu.org。
+- Worker yanyu-speed；唯一正式域名 speed.fakeyou.eu.org。
 - worker.js 提供 API；out/ 通过 Cloudflare Static Assets 提供。
 - 构建时需要访问 npm 和 Google Fonts；字体随构建产物部署，浏览器不从 Google Fonts 加载字体。
 - 未使用第三方测速 API；/api/geo 来自 Cloudflare 请求元数据。

@@ -1,7 +1,7 @@
 # 继续开发
 
 - 项目：BABYANYU/yanyu-speed，Cloudflare Worker yanyu-speed。
-- 正式域名：yanyubaby.eu.org；配置禁用 workers.dev 与预览地址。
+- 正式域名：speed.fakeyou.eu.org；配置禁用 workers.dev 与预览地址。
 - 左上角和网站元数据使用 Yanyu.Speed；首页无运营页脚。
 - 默认 Single；单线程下载禁用并发和预取，上传为一个请求。
 - Multi 保留三路下载槽位及预取、三路上传。

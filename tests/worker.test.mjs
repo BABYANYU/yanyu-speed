@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const source = await readFile(new URL('../worker.js', import.meta.url), 'utf8');
 const { default: worker } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
-const call = (path, init, env = {}) => worker.fetch(new Request(`https://yanyubaby.eu.org${path}`, init), env);
+const call = (path, init, env = {}) => worker.fetch(new Request(`https://speed.fakeyou.eu.org${path}`, init), env);
 
 test('ping is uncached; unsupported methods and cross-site traffic are rejected', async () => {
   const ping = await call('/api/ping', { method: 'HEAD' });
@@ -71,7 +71,7 @@ test('oversized upload keeps 413 even if body cancellation fails and never leaks
 });
 
 test('geo comes from CF metadata and static requests use the assets binding', async () => {
-  const request = new Request('https://yanyubaby.eu.org/api/geo', { headers: { 'CF-Connecting-IP': '192.0.2.1' } });
+  const request = new Request('https://speed.fakeyou.eu.org/api/geo', { headers: { 'CF-Connecting-IP': '192.0.2.1' } });
   request.cf = { country: 'JP', asOrganization: 'Example ISP', asn: 64500 };
   const geo = await (await worker.fetch(request, {})).json();
   assert.equal(geo.ip, '192.0.2.1');

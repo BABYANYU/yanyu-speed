@@ -13,6 +13,6 @@
     "not_found_handling": "none"
   },
   "routes": [
-    { "pattern": "yanyubaby.eu.org", "custom_domain": true }
+    { "pattern": "speed.fakeyou.eu.org", "custom_domain": true }
   ]
 }
