@@ -45,6 +45,31 @@ test('upload counts bytes, rejects oversized streams and handles a disconnected 
   assert.equal((await call('/api/upload', { method: 'POST', body: broken, duplex: 'half' })).status, 400);
 });
 
+test('upload validates declared lengths without losing the streaming limit', async () => {
+  for (const length of ['', '-1', '+1', '1.5', 'NaN', 'Infinity', '0x10', '1e3', '1, 1']) {
+    const response = await call('/api/upload', { method: 'POST', headers: { 'Content-Length': length } });
+    assert.equal(response.status, 400, `length=${length}`);
+    assert.equal(await response.text(), 'Invalid Content-Length');
+  }
+  const huge = await call('/api/upload', { method: 'POST', headers: { 'Content-Length': '99999999999999999999999999' } });
+  assert.equal(huge.status, 413);
+  const empty = await call('/api/upload', { method: 'POST', headers: { 'Content-Length': '0' } });
+  assert.deepEqual(await empty.json(), { received: 0 });
+  const exact = await call('/api/upload', { method: 'POST', body: new Uint8Array(32 * 1024 * 1024) });
+  assert.equal(exact.status, 200);
+  assert.deepEqual(await exact.json(), { received: 32 * 1024 * 1024 });
+});
+
+test('oversized upload keeps 413 even if body cancellation fails and never leaks error details', async () => {
+  const body = new ReadableStream({
+    pull(controller) { controller.enqueue(new Uint8Array(32 * 1024 * 1024 + 1)); },
+    cancel() { throw new Error('private cancellation details'); }
+  });
+  const response = await call('/api/upload', { method: 'POST', body, duplex: 'half' });
+  assert.equal(response.status, 413);
+  assert.equal(await response.text(), 'Too large');
+});
+
 test('geo comes from CF metadata and static requests use the assets binding', async () => {
   const request = new Request('https://yanyubaby.eu.org/api/geo', { headers: { 'CF-Connecting-IP': '192.0.2.1' } });
   request.cf = { country: 'JP', asOrganization: 'Example ISP', asn: 64500 };

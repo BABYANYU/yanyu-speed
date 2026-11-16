@@ -49,7 +49,10 @@ export default {
   }
   if (path === '/api/upload' && request.method === 'POST') {
    const limit=32*1024*1024;
-   if (Number(request.headers.get('Content-Length')) > limit)
+   const declaredLength=request.headers.get('Content-Length');
+   if (declaredLength !== null && !/^\d+$/.test(declaredLength))
+    return new Response('Invalid Content-Length',{status:400,headers:baseHeaders});
+   if (declaredLength !== null && BigInt(declaredLength) > BigInt(limit))
     return new Response('Too large',{status:413,headers:baseHeaders});
    let received=0;
    if (request.body) {
@@ -58,7 +61,10 @@ export default {
      while (true) {
       const {done,value}=await reader.read(); if(done) break;
       received+=value.byteLength;
-      if(received>limit) { await reader.cancel(); return new Response('Too large',{status:413,headers:baseHeaders}); }
+      if(received>limit) {
+       try { await reader.cancel(); } catch { /* cleanup cannot change the size verdict */ }
+       return new Response('Too large',{status:413,headers:baseHeaders});
+      }
      }
     } catch {
      return new Response('Upload interrupted',{status:400,headers:baseHeaders});

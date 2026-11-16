@@ -7,7 +7,7 @@ import { noop } from 'foxts/noop';
 import { wait } from 'foxts/wait';
 import { toast } from 'sonner';
 import { menuStyles } from '../../styles/menu.stylex';
-import { useCapturing, usePhase, useRedacted, useRoot, useSetCapturing, useSetRedacted } from '@/context/speedtest';
+import { useCapturing, usePhase, useRoot, useSetCapturing } from '@/context/speedtest';
 
 const RE_TIMESTAMP_SEPARATORS = /[:T]/g;
 /** CSS px of page background kept around the captured block. */
@@ -34,19 +34,15 @@ export function ScreenshotButton({ children }: React.PropsWithChildren) {
   const phase = usePhase();
   const capturing = useCapturing();
   const setCapturing = useSetCapturing();
-  const redacted = useRedacted();
-  const setRedacted = useSetRedacted();
   const root = useRoot();
 
   const screenshot = () => {
     const node = root;
-    if (node === null) return;
-    const wasRedacted = redacted;
+    if (node === null || phase !== 'done' || capturing) return;
     // The clone below has to see the masked details, and Safari only honours clipboard writes
     // issued inside the click itself, so the DOM is updated now rather than after a re-render.
     // eslint-disable-next-line @eslint-react/dom-no-flush-sync -- one flush per click, see above
     flushSync(() => {
-      setRedacted(true);
       setCapturing(true);
     });
     // The renderer is only ever needed here, long after load, so it ships as its own chunk.
@@ -59,7 +55,6 @@ export function ScreenshotButton({ children }: React.PropsWithChildren) {
       filter: (el) => !(el instanceof HTMLElement) || el.dataset.screenshot !== 'hide'
     }));
     image.catch(noop).finally(() => {
-      setRedacted(wasRedacted);
       setCapturing(false);
     });
     // eslint-disable-next-line vibe-proof/react-prefer-foxact-use-clipboard -- image clipboard is optional at runtime; foxact only handles text

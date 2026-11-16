@@ -1,7 +1,7 @@
 'use client';
 
 import * as stylex from '@stylexjs/stylex';
-import { useSetRoot } from '@/context/speedtest';
+import { useCapturing, useSetRoot } from '@/context/speedtest';
 import { bp } from '../../styles/breakpoints.stylex';
 
 const styles = stylex.create({
@@ -15,5 +15,5 @@ const styles = stylex.create({
 
 /** The captured block; the element is published so the screenshot button can reach it. */
 export function SpeedtestRoot({ children }: React.PropsWithChildren) {
-  return <div ref={useSetRoot()} {...stylex.props(styles.grid)}>{children}</div>;
+  return <div inert={useCapturing()} ref={useSetRoot()} {...stylex.props(styles.grid)}>{children}</div>;
 }

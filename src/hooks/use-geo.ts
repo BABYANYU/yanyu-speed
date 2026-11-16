@@ -1,20 +1,9 @@
 import useSWRImmutable from 'swr/immutable';
 
-/** Connection details served by the Cloudflare Snippet in front of the deployed site. */
-export interface Geo {
-  ip: string,
-  country: string,
-  country_code: string,
-  region: string,
-  city: string,
-  timezone: string,
-  latitude: number | null,
-  longitude: number | null,
-  isp: string,
-  organization: string,
-  asn_organization: string,
-  asn: number | null
-}
+import { parseGeo } from '@/lib/geo';
+import type { Geo } from '@/lib/geo';
+
+export type { Geo } from '@/lib/geo';
 
 // Modified by 烟雨: same-origin geo endpoint supplied separately by the operator.
 const GEO_URL = '/api/geo';
@@ -39,7 +28,7 @@ async function fetchGeo(url: string): Promise<Geo> {
   if (process.env.NODE_ENV === 'development') return SAMPLE;
   const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
   if (!response.ok) throw new Error(`Geo lookup failed: ${response.status}`);
-  return response.json() as Promise<Geo>;
+  return parseGeo(await response.json());
 }
 
 export function useGeo() {

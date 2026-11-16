@@ -3,7 +3,7 @@
 import * as stylex from '@stylexjs/stylex';
 import { Menu } from '@base-ui/react/menu';
 import { menuStyles } from '../../styles/menu.stylex';
-import { useRunning, useSetChoice } from '@/context/speedtest';
+import { useCapturing, useResetResult, useRunning, useSetChoice } from '@/context/speedtest';
 import { useTargetIndex } from '@/hooks/use-target';
 import type { Target } from '@/lib/targets';
 import { bp } from '../../styles/breakpoints.stylex';
@@ -35,11 +35,19 @@ export function RegionMenuClient({ targets, triggerIconSlot, checkSlot }: Region
   const value = targets[index];
   const setChoice = useSetChoice();
   const running = useRunning();
+  const capturing = useCapturing();
+  const disabled = running || capturing;
+  const reset = useResetResult();
+  const changeRegion = (next: unknown) => {
+    if (disabled || typeof next !== 'number' || !Number.isSafeInteger(next) || next < 0 || next >= targets.length) return;
+    if (next !== index) reset();
+    setChoice(next);
+  };
 
   return (
     <Menu.Root modal={false}>
       <Menu.Trigger
-        disabled={running}
+        disabled={disabled}
         aria-label={`Region: ${value.name}`}
         title="Region"
         {...stylex.props(menuStyles.trigger, menuStyles.labelled, styles.trigger)}
@@ -50,7 +58,7 @@ export function RegionMenuClient({ targets, triggerIconSlot, checkSlot }: Region
       <Menu.Portal>
         <Menu.Positioner align="end" sideOffset={8} {...stylex.props(menuStyles.positioner)}>
           <Menu.Popup {...stylex.props(menuStyles.popup)}>
-            <Menu.RadioGroup value={index} onValueChange={setChoice}>
+            <Menu.RadioGroup value={index} onValueChange={changeRegion}>
               {targets.map((target, i) => (
                 <Menu.RadioItem key={target.name} value={i} closeOnClick {...stylex.props(menuStyles.item)}>
                   <span>

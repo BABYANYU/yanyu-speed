@@ -5,7 +5,7 @@ import { SAMPLE_INTERVAL, estimate, shouldStop, smoothed, sustained } from './st
 import type { Target } from './targets';
 
 export type ThreadMode = 'single' | 'multi';
-export type Phase = 'idle' | 'latency' | 'download' | 'upload' | 'done';
+export type Phase = 'idle' | 'latency' | 'download' | 'upload' | 'done' | 'error';
 
 /** One throughput phase. Each figure is live while the phase runs and becomes the result when it ends. */
 export interface Throughput {
@@ -58,6 +58,14 @@ const LATENCY_PINGS_MAX = 20;
 const LATENCY_BUDGET = 2000;
 /** ms between pings while the link is saturated. */
 const LOADED_PING_INTERVAL = 400;
+/** Maximum wait for download headers or the next body chunk, not a whole-transfer deadline. */
+const DOWNLOAD_IDLE_TIMEOUT = 5000;
+/** Empty successful responses tolerated before this pump gives up. */
+const EMPTY_RESPONSE_LIMIT = 3;
+/** Backoff after an empty successful response. */
+const EMPTY_RESPONSE_BACKOFF = 300;
+/** How long a completed upload rate remains valid while the next POST is pending. */
+const HELD_RATE_TTL = 2000;
 /** Most recent loaded pings that form the loaded-latency result. */
 const LOADED_POINTS = 20;
 /** ms an in-flight loaded ping may still land after the streams stop. */
@@ -122,43 +130,95 @@ function openReader(body: ReadableStream<Uint8Array> | null) {
   return body === null ? null : body.getReader();
 }
 
-/**
- * Keeps one transfer slot saturated. The next request is issued once half of the current body
- * has arrived, so the gap between bodies is hidden. Aborting the signal rejects the in-flight
- * read, which is how the loop exits.
- */
+class EmptyDownloadError extends Error {
+  override name = 'EmptyDownloadError';
+}
+
+interface ResponseSlot {
+  response: Promise<Response>,
+  read: (reader: ReadableStreamDefaultReader<Uint8Array>) => Promise<ReadableStreamReadResult<Uint8Array>>,
+  cancel: () => Promise<void>
+}
+
+async function cancelSlot(slot: ResponseSlot | null) {
+  if (slot === null) return;
+  await slot.cancel();
+}
+
+/** Keeps one transfer slot saturated, with at most one cancellable prefetch. */
 async function pump(url: string, signal: AbortSignal, meter: Meter, prefetch: boolean) {
-  const request = () => {
-    const started = fetch(localTarget(url), { ...FETCH_INIT, signal });
+  const request = (): ResponseSlot => {
+    const controller = new AbortController();
+    const requestSignal = AbortSignal.any([signal, controller.signal]);
+    const timeout = () => controller.abort(new DOMException('Download stalled', 'TimeoutError'));
+    const headersTimer = setTimeout(timeout, DOWNLOAD_IDLE_TIMEOUT);
+    const response = fetch(localTarget(url), { ...FETCH_INIT, signal: requestSignal })
+      .finally(() => clearTimeout(headersTimer));
     // Awaited later; this only keeps an early rejection from surfacing as unhandled.
-    started.catch(noop);
-    return started;
+    response.catch(noop);
+    return {
+      response,
+      async read(reader) {
+        // A prefetched body may sit unread behind the current transfer. Only time an
+        // actual read: backpressure is not a network stall. Each chunk gets a fresh timer.
+        const timer = setTimeout(timeout, DOWNLOAD_IDLE_TIMEOUT);
+        try { return await reader.read(); } finally { clearTimeout(timer); }
+      },
+      async cancel() {
+        clearTimeout(headersTimer);
+        controller.abort();
+        try { await discard((await response).body); } catch { /* already failed or aborted */ }
+      }
+    };
   };
-  let pending: Promise<Response> | null = null;
+  let pending: ResponseSlot | null = null;
+  let emptyResponses = 0;
   for (;;) {
+    let next: ResponseSlot | null = null;
+    let current: ResponseSlot | null = null;
     try {
-      const response = await (pending ?? request());
+      signal.throwIfAborted();
+      current = pending ?? request();
+      pending = null;
+      const response = await current.response;
       if (!response.ok) {
         await discard(response.body);
         throw new Error(`Download rejected: ${response.status}`);
       }
       const total = Number(response.headers.get('content-length'));
-      let next: Promise<Response> | null = null;
       let received = 0;
       const reader = openReader(response.body);
       if (reader !== null) {
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          received += value.byteLength;
-          meter.flow(value.byteLength);
-          if (prefetch && next === null && total > 0 && received >= total * PREFETCH_AT) next = request();
+        try {
+          for (;;) {
+            const { done, value } = await current.read(reader);
+            if (done) break;
+            received += value.byteLength;
+            meter.flow(value.byteLength);
+            if (prefetch && next === null && total > 0 && received >= total * PREFETCH_AT) next = request();
+          }
+        } finally {
+          reader.releaseLock();
         }
       }
-      pending = next;
-    } catch {
-      if (signal.aborted) return;
+      if (received === 0) {
+        await cancelSlot(next);
+        next = null;
+        emptyResponses++;
+        if (emptyResponses >= EMPTY_RESPONSE_LIMIT) throw new EmptyDownloadError('测速端点连续返回空响应。');
+        await wait(EMPTY_RESPONSE_BACKOFF);
+      } else {
+        emptyResponses = 0;
+        pending = next;
+        next = null;
+      }
+    } catch (error) {
+      await cancelSlot(current);
+      await cancelSlot(next);
+      await cancelSlot(pending);
       pending = null;
+      if (signal.aborted) return;
+      if (error instanceof EmptyDownloadError) throw error;
       await wait(300);
     }
   }
@@ -172,8 +232,13 @@ async function push(url: string, signal: AbortSignal, meter: Meter) {
   let bytes = UPLOAD_FIRST_BYTES;
   for (;;) {
     try {
+      signal.throwIfAborted();
       const started = performance.now();
-      const response = await fetch(localTarget(url), { ...FETCH_INIT, method: 'POST', body: new Uint8Array(bytes), signal });
+      // Fetch exposes no upload progress. A fixed short timeout would reject valid
+      // slow uploads, so the phase deadline bounds the POST instead.
+      const response = await fetch(localTarget(url), {
+        ...FETCH_INIT, method: 'POST', body: new Uint8Array(bytes), signal
+      });
       const seconds = (performance.now() - started) / 1000;
       await discard(response.body);
       if (!response.ok) throw new Error(`Upload rejected: ${response.status}`);
@@ -190,7 +255,7 @@ async function push(url: string, signal: AbortSignal, meter: Meter) {
 interface Meter {
   /** Bytes that just streamed through; the sampler turns them into a rate. */
   flow: (count: number) => void,
-  /** A request of `bytes` the server took `seconds` to acknowledge; its rate holds until the next one. */
+  /** A request of `bytes` acknowledged in `seconds`; its rate expires if no new acknowledgement arrives. */
   transfer: (bytes: number, seconds: number) => void
 }
 
@@ -213,16 +278,23 @@ async function measure(pumps: readonly Pump[], pingTarget: string, signal: Abort
   let pending = 0;
   let acknowledged = 0;
   const held: number[] = [];
+  const heldAt: number[] = [];
+  let failure: Error | undefined;
   const streams = pumps.map((start, i) => {
     held.push(0);
+    heldAt.push(0);
     return start(phase.signal, {
       flow(count) {
         pending += count;
       },
       transfer(bytes, seconds) {
         acknowledged += bytes;
-        held[i] = (bytes * 8) / seconds / 1e6;
+        held[i] = seconds > 0 ? (bytes * 8) / seconds / 1e6 : 0;
+        heldAt[i] = performance.now();
       }
+    }).catch((error: unknown) => {
+      failure ??= error instanceof EmptyDownloadError ? error : new Error('测速传输失败。', { cause: error });
+      stop();
     });
   });
 
@@ -267,7 +339,9 @@ async function measure(pumps: readonly Pump[], pingTarget: string, signal: Abort
     if (phase.signal.aborted) break;
     const now = performance.now();
     let mbps = (pending * 8) / ((now - last) / 1000) / 1e6;
-    for (let i = 0, len = held.length; i < len; i++) mbps += held[i];
+    for (let i = 0, len = held.length; i < len; i++) {
+      if (now - heldAt[i] <= HELD_RATE_TTL) mbps += held[i];
+    }
     bytes += pending + acknowledged;
     pending = 0;
     acknowledged = 0;
@@ -305,6 +379,10 @@ async function measure(pumps: readonly Pump[], pingTarget: string, signal: Abort
     report(mbps, mbps, loadedLatency());
   };
   const settled = settle();
+  if (failure !== undefined && !signal.aborted) {
+    await settled;
+    throw failure;
+  }
   if (bytes === 0 && !signal.aborted) {
     await settled;
     throw new Error('测速端点未传输有效数据，请检查网络后重试。');

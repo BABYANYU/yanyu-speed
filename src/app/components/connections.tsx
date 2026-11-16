@@ -3,7 +3,8 @@
 import * as stylex from '@stylexjs/stylex';
 import { Button } from '@base-ui/react/button';
 import { Switch } from '@base-ui/react/switch';
-import { useMode, useRunning, useSetMode } from '@/context/speedtest';
+import { useCapturing, useMode, useResetResult, useRunning, useSetMode } from '@/context/speedtest';
+import type { ThreadMode } from '@/lib/engine';
 import { bp } from '../../styles/breakpoints.stylex';
 import { colors } from '../../styles/tokens.stylex';
 
@@ -86,18 +87,26 @@ export function Connections() {
   const mode = useMode();
   const setMode = useSetMode();
   const running = useRunning();
+  const capturing = useCapturing();
+  const disabled = running || capturing;
+  const reset = useResetResult();
+  const changeMode = (next: ThreadMode) => {
+    if (disabled || next === mode) return;
+    reset();
+    setMode(next);
+  };
   return (
     <div
       role="group"
       aria-label="Connections"
-      {...stylex.props(styles.connections, running && styles.connectionsDisabled)}
+      {...stylex.props(styles.connections, disabled && styles.connectionsDisabled)}
     >
       {/* Side labels are mouse shortcuts; the switch is the accessible, keyboard-reachable control. */}
       <Button
         tabIndex={-1}
         aria-hidden
-        disabled={running}
-        onClick={() => setMode('multi')}
+        disabled={disabled}
+        onClick={() => changeMode('multi')}
         {...stylex.props(styles.option, mode === 'multi' && styles.optionPressed)}
       >
         Multi
@@ -105,8 +114,8 @@ export function Connections() {
       <Switch.Root
         aria-label="Use a single connection"
         checked={mode === 'single'}
-        disabled={running}
-        onCheckedChange={(checked) => setMode(checked ? 'single' : 'multi')}
+        disabled={disabled}
+        onCheckedChange={(checked) => changeMode(checked ? 'single' : 'multi')}
         {...stylex.props(styles.switch)}
       >
         <Switch.Thumb {...stylex.props(styles.thumb, mode === 'single' && styles.thumbOn)}>
@@ -128,8 +137,8 @@ export function Connections() {
       <Button
         tabIndex={-1}
         aria-hidden
-        disabled={running}
-        onClick={() => setMode('single')}
+        disabled={disabled}
+        onClick={() => changeMode('single')}
         {...stylex.props(styles.option, mode === 'single' && styles.optionPressed)}
       >
         Single

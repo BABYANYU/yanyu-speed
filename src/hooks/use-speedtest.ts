@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useSetDownload, useSetJitter, useSetLatency, useSetPhase, useSetUpload } from '@/context/speedtest';
-import { NOT_STARTED, runSpeedtest } from '@/lib/engine';
-import type { Phase, ThreadMode } from '@/lib/engine';
+import { useResetResult, useRunSession, useSetDownload, useSetJitter, useSetLatency, useSetPhase, useSetRunTarget, useSetUpload } from '@/context/speedtest';
+import { runSpeedtest } from '@/lib/engine';
+import type { ThreadMode } from '@/lib/engine';
 import { MIN_DURATION, SAMPLE_INTERVAL } from '@/lib/stability';
 import type { Target } from '@/lib/targets';
 
@@ -12,45 +12,38 @@ export type { Phase, ThreadMode, Throughput } from '@/lib/engine';
 export const TREND_SAMPLES = Math.round(MIN_DURATION / SAMPLE_INTERVAL);
 
 /** Starts and stops runs, reporting their figures through the contexts; one caller owns the run. */
-export function useSpeedtestControls(mode: ThreadMode, target: Target) {
+export function useSpeedtestControls(mode: ThreadMode, target: Target, targetIndex: number) {
   const setPhase = useSetPhase();
   const setLatency = useSetLatency();
   const setJitter = useSetJitter();
   const setDownload = useSetDownload();
   const setUpload = useSetUpload();
-  const controllerRef = useRef<AbortController | null>(null);
+  const setRunTarget = useSetRunTarget();
+  const session = useRunSession();
+  const stop = useResetResult();
 
-  useEffect(() => () => controllerRef.current?.abort(), []);
-
-  const clear = useCallback((phase: Phase) => {
-    setPhase(phase);
-    setLatency(null);
-    setJitter(null);
-    setDownload(NOT_STARTED);
-    setUpload(NOT_STARTED);
-  }, [setPhase, setLatency, setJitter, setDownload, setUpload]);
-
-  const stop = useCallback(() => {
-    controllerRef.current?.abort();
-    controllerRef.current = null;
-    clear('idle');
-  }, [clear]);
+  useEffect(() => () => session.cancel(), [session]);
 
   const start = useCallback(() => {
-    controllerRef.current?.abort();
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    clear('latency');
-    const report = { phase: setPhase, latency: setLatency, jitter: setJitter, download: setDownload, upload: setUpload };
-    runSpeedtest(mode, target, controller.signal, report).catch(() => {
-      // Stopped by the user, or the network gave out mid-test: keep whatever was measured.
-      if (!controller.signal.aborted) {
-        controller.abort();
-        setPhase('done');
+    stop();
+    const controller = session.begin();
+    setRunTarget(targetIndex);
+    setPhase('latency');
+    const report = {
+      phase: session.guard(controller, setPhase),
+      latency: session.guard(controller, setLatency),
+      jitter: session.guard(controller, setJitter),
+      download: session.guard(controller, setDownload),
+      upload: session.guard(controller, setUpload)
+    };
+    void runSpeedtest(mode, target, controller.signal, report).catch(() => {
+      if (session.isCurrent(controller)) {
+        session.cancel();
+        setPhase('error');
         toast.error('测速失败，请检查网络后重试。');
       }
-    });
-  }, [mode, target, clear, setPhase, setLatency, setJitter, setDownload, setUpload]);
+    }).finally(() => session.finish(controller));
+  }, [mode, target, targetIndex, stop, session, setRunTarget, setPhase, setLatency, setJitter, setDownload, setUpload]);
 
   return { start, stop };
 }

@@ -9,7 +9,7 @@ import { PrivacyToggle } from './privacy-toggle';
 import { RegionMenu } from './region-menu';
 import { ScreenshotButton } from './screenshot-button';
 import { SpeedReadout } from './speed-readout';
-import { CapturingProvider, ChoiceProvider, DownloadProvider, JitterProvider, LatencyProvider, ModeProvider, PhaseProvider, RedactedProvider, RootProvider, UploadProvider } from '@/context/speedtest';
+import { CapturingProvider, ChoiceProvider, DownloadProvider, JitterProvider, LatencyProvider, ModeProvider, PhaseProvider, RedactedProvider, RootProvider, RunSessionProvider, RunTargetProvider, UploadProvider } from '@/context/speedtest';
 import { SpeedtestRoot } from './speedtest-root';
 import { StartButton } from './start-button';
 import { StatValue } from './stat-value';
@@ -172,6 +172,8 @@ const hiddenJsx = (
 
 /** One `createContextState` per concern, so a leaf re-renders only for the state it reads. */
 const contexts = [
+  <RunSessionProvider key="session" />,
+  <RunTargetProvider key="runTarget" />,
   <PhaseProvider key="phase" />,
   <LatencyProvider key="latency" />,
   <JitterProvider key="jitter" />,

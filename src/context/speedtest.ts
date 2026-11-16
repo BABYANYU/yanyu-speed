@@ -1,6 +1,12 @@
 'use client';
 
+import { createContext, createElement as ReactCreateElement, use, useCallback } from 'react';
 import { createContextState } from 'foxact/context-state';
+import { useSingleton } from 'foxact/use-singleton';
+import { nullthrow } from 'foxact/nullthrow';
+import { createRunSession } from '@/lib/run-session';
+import type { RunSession } from '@/lib/run-session';
+import { isRunningPhase } from '@/lib/speedtest-ui';
 import { NOT_STARTED } from '@/lib/engine';
 import type { Phase, ThreadMode, Throughput } from '@/lib/engine';
 
@@ -19,13 +25,47 @@ const [UploadProvider, , useSetUpload, UploadContext] = createContextState<Throu
 
 export function useRunning() {
   const phase = usePhase();
-  return phase !== 'idle' && phase !== 'done';
+  return isRunningPhase(phase);
 }
 
 const [ModeProvider, useMode, useSetMode] = createContextState<ThreadMode>('single');
 
 /** Index of a region picked by hand; null follows the geo lookup. */
 const [ChoiceProvider, useChoice, useSetChoice] = createContextState<number | null>(null);
+
+/** Region of the current run/result; late geo responses cannot relabel it. */
+const [RunTargetProvider, useRunTarget, useSetRunTarget] = createContextState<number | null>(null);
+
+const RunSessionContext = createContext<RunSession | null>(null);
+
+export function RunSessionProvider({ children }: React.PropsWithChildren) {
+  const { current: session } = useSingleton(createRunSession);
+  return ReactCreateElement(RunSessionContext.Provider, { value: session }, children);
+}
+
+export function useRunSession() {
+  return nullthrow(use(RunSessionContext), 'RunSessionProvider is required');
+}
+
+/** Invalidate the old run synchronously before clearing its visible result. */
+export function useResetResult() {
+  const session = useRunSession();
+  const setPhase = useSetPhase();
+  const setLatency = useSetLatency();
+  const setJitter = useSetJitter();
+  const setDownload = useSetDownload();
+  const setUpload = useSetUpload();
+  const setRunTarget = useSetRunTarget();
+  return useCallback(() => {
+    session.cancel();
+    setRunTarget(null);
+    setPhase('idle');
+    setLatency(null);
+    setJitter(null);
+    setDownload(NOT_STARTED);
+    setUpload(NOT_STARTED);
+  }, [session, setRunTarget, setPhase, setLatency, setJitter, setDownload, setUpload]);
+}
 
 /** Screenshot mode: personal details are masked and the location drops to the country. */
 const [RedactedProvider, useRedacted, useSetRedacted] = createContextState(false);
@@ -43,6 +83,7 @@ export {
   UploadProvider, useSetUpload, UploadContext,
   ModeProvider, useMode, useSetMode,
   ChoiceProvider, useChoice, useSetChoice,
+  RunTargetProvider, useRunTarget, useSetRunTarget,
   RedactedProvider, useRedacted, useSetRedacted,
   CapturingProvider, useCapturing, useSetCapturing,
   RootProvider, useRoot, useSetRoot

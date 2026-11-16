@@ -3,7 +3,8 @@
 import * as stylex from '@stylexjs/stylex';
 import { Fragment } from 'react';
 import { stringJoin } from 'foxts/string-join';
-import { useRedacted } from '@/context/speedtest';
+import { useCapturing, useRedacted } from '@/context/speedtest';
+import { effectiveRedaction } from '@/lib/speedtest-ui';
 import { bp } from '../../styles/breakpoints.stylex';
 import { colors } from '../../styles/tokens.stylex';
 import { useGeo } from '@/hooks/use-geo';
@@ -81,7 +82,8 @@ interface GeoValueProps {
 
 export function GeoValue({ field, hiddenSlot }: GeoValueProps) {
   const { data: geo, isLoading } = useGeo();
-  const value = read(field, geo, useRedacted(), hiddenSlot);
+  const redacted = effectiveRedaction(useRedacted(), useCapturing());
+  const value = read(field, geo, redacted, hiddenSlot);
   return (
     <dd {...stylex.props(styles.infoValue, !isLoading && !value && styles.empty)}>
       {isLoading

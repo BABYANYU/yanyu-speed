@@ -2,10 +2,11 @@
 
 import * as stylex from '@stylexjs/stylex';
 import { Button } from '@base-ui/react/button';
-import { useMode, usePhase, useRunning } from '@/context/speedtest';
+import { useCapturing, useChoice, useMode, usePhase, useRunning } from '@/context/speedtest';
+import { startDisabled } from '@/lib/speedtest-ui';
 import { useGeo } from '@/hooks/use-geo';
 import { useSpeedtestControls } from '@/hooks/use-speedtest';
-import { useTarget } from '@/hooks/use-target';
+import { useTargetIndex } from '@/hooks/use-target';
 import type { Target } from '@/lib/targets';
 import { bp } from '../../styles/breakpoints.stylex';
 import { colors } from '../../styles/tokens.stylex';
@@ -61,16 +62,21 @@ export function StartButton({ targets, idleSlot, runningSlot, doneSlot }: StartB
   const running = useRunning();
   // The region is not settled until the lookup has answered.
   const { isLoading: locating } = useGeo();
-  const { start, stop } = useSpeedtestControls(useMode(), useTarget(targets));
+  const index = useTargetIndex(targets);
+  const capturing = useCapturing();
+  const choice = useChoice();
+  const disabled = startDisabled(phase, capturing, locating, targets.length, choice);
+  const { start, stop } = useSpeedtestControls(useMode(), targets[index], index);
   return (
     <Button
-      disabled={targets.length > 1 && locating}
-      onClick={running ? stop : start}
+      disabled={disabled}
+      onClick={() => { if (!disabled) (running ? stop : start)(); }}
       {...stylex.props(styles.button, running && styles.buttonQuiet)}
     >
       {phase === 'idle' && idleSlot}
       {running && runningSlot}
       {phase === 'done' && doneSlot}
+      {phase === 'error' && '测速失败 · 重试'}
     </Button>
   );
 }

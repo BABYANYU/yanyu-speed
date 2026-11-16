@@ -2,7 +2,8 @@
 
 import * as stylex from '@stylexjs/stylex';
 import { Toggle } from '@base-ui/react/toggle';
-import { useRedacted, useSetRedacted } from '@/context/speedtest';
+import { useCapturing, useRedacted, useSetRedacted } from '@/context/speedtest';
+import { effectiveRedaction } from '@/lib/speedtest-ui';
 import { colors } from '../../styles/tokens.stylex';
 
 const styles = stylex.create({
@@ -38,9 +39,11 @@ interface PrivacyToggleProps {
 }
 
 export function PrivacyToggle({ showSlot, hideSlot }: PrivacyToggleProps) {
-  const redacted = useRedacted();
+  const capturing = useCapturing();
+  const redacted = effectiveRedaction(useRedacted(), capturing);
+  const setRedacted = useSetRedacted();
   return (
-    <Toggle pressed={redacted} onPressedChange={useSetRedacted()} {...stylex.props(styles.privacyToggle)}>
+    <Toggle disabled={capturing} pressed={redacted} onPressedChange={(next) => { if (!capturing) setRedacted(next); }} {...stylex.props(styles.privacyToggle)}>
       {redacted ? showSlot : hideSlot}
     </Toggle>
   );
