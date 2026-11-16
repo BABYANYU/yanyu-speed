@@ -23,6 +23,7 @@ npm run deploy
 - 修改 `SPEEDTEST_TARGETS` 后需重新构建发布。保持单线程禁用并发和预取，测速 API 禁止缓存。
 - 发布前完成以下检查；发布后确认首页、默认 Single 和测速功能正常。
 - GitHub 推送只触发检查，不自动发布网站；正式更新仍需运行 `npm run deploy`。额外域名与预览地址保持关闭。
+- 本次全面审查记录见 `documentation/AUDIT-2026-11-16.md`；涉及测速生命周期、异常流、Worker 上传限制、截图隐私和浏览器验收。
 
 ```sh
 npm test
