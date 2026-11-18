@@ -20,7 +20,7 @@
     "lucide-react": "^1.60.0",
     "minireset.css": "^0.0.7",
     "modern-screenshot": "^4.7.0",
-    "next": "^16.4.2",
+    "next": "^16.4.5",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "server-only": "^0.0.1",
