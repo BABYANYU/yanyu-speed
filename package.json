@@ -48,5 +48,11 @@
     "node": ">=22.22.0 <25",
     "npm": ">=10"
   },
-  "packageManager": "npm@10.9.9"
+  "packageManager": "npm@10.9.9",
+  "license": "Apache-2.0",
+  "author": "BABYANYU",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BABYANYU/yanyu-speed.git"
+  }
 }

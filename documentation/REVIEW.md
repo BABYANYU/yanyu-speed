@@ -23,7 +23,7 @@
 
 ## 环境与组件
 
-线上运行环境是 Cloudflare Workers/V8 + Static Assets，不运行 Next.js 服务。无 VPS、数据库、KV、R2 或外部测速 API；现有 Worker 没有设置 secrets。自定义域名为 yanyubaby.eu.org。构建字体需要 Google Fonts，字体文件部署后同源加载。
+线上运行环境是 Cloudflare Workers/V8 + Static Assets，不运行 Next.js 服务。无 VPS、数据库、KV、R2 或外部测速 API；现有 Worker 没有设置 secrets。自定义域名为 example.org。构建字体需要 Google Fonts，字体文件部署后同源加载。
 
 本次构建使用 Node.js 22.23.4、npm 10.9.9；Wrangler 4.152.0；Cloudflare compatibility_date 保持 2026-10-01。
 
