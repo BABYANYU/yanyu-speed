@@ -1,6 +1,6 @@
 # Yanyu.Speed
 
-基于 [speed.skk.moe](https://github.com/SukkaW/speed.skk.moe) 的浏览器测速应用，使用 Next.js、React 与 Cloudflare Workers。测量当前设备到所选测速端点的下载、上传速度、延迟与抖动，默认使用本站 Cloudflare API 和单连接模式。
+Yanyu.Speed 是一款浏览器测速应用，用于测量当前设备到所选测速端点的下载速度、上传速度、延迟和抖动。默认使用本站测速端点和单连接模式。前端使用 Next.js 和 React 构建，本站测速接口运行在 Cloudflare Workers 上。
 
 ## 安装与测试
 
@@ -75,4 +75,4 @@ Next.js 通过静态导出生成页面，Cloudflare Static Assets 托管 `out/`�
 
 ## 许可
 
-项目采用 [Apache License 2.0](LICENSE)。上游归属与修改说明见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES)。发布后的许可页面为 `/licenses.html`；第三方依赖许可由构建脚本收集，字体许可随静态资源提供。
+项目采用 [Apache License 2.0](LICENSE)。第三方归属与修改说明见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES)；许可页面为 `/licenses.html`。第三方依赖许可由构建脚本收集，字体许可随静态资源提供。
